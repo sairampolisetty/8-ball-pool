@@ -367,16 +367,7 @@ const PoolGame = () => {
       ctx.arc(ball.x, ball.y, BALL_RADIUS * scale, 0, Math.PI * 2);
       ctx.fill();
 
-      // Ball number
-      if (ball.id !== 0) {
-        ctx.fillStyle = ball.type === 'stripe' ? '#FFFFFF' : '#000000';
-        ctx.font = `bold ${10 * scale}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(ball.id.toString(), ball.x, ball.y);
-      }
-
-      // Stripe pattern for striped balls
+      // Stripe pattern for striped balls (draw first, before number)
       if (ball.type === 'stripe') {
         ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
@@ -385,6 +376,22 @@ const PoolGame = () => {
         
         ctx.fillStyle = ball.color;
         ctx.fillRect(ball.x - BALL_RADIUS * scale + 2, ball.y - 2 * scale, (BALL_RADIUS * scale - 2) * 2, 4 * scale);
+      }
+
+      // Ball number (draw after stripe pattern)
+      if (ball.id !== 0) {
+        ctx.fillStyle = '#000000';
+        ctx.font = `bold ${10 * scale}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Add white outline for better visibility on colored backgrounds
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2 * scale;
+        ctx.strokeText(ball.id.toString(), ball.x, ball.y);
+        
+        // Fill the number
+        ctx.fillText(ball.id.toString(), ball.x, ball.y);
       }
 
       // Highlight cue ball placement mode
