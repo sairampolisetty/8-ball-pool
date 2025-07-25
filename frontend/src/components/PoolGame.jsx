@@ -503,13 +503,13 @@ const PoolGame = () => {
         };
 
         // Wall collisions
-        if (newBall.x <= BALL_RADIUS || newBall.x >= TABLE_WIDTH - BALL_RADIUS) {
+        if (newBall.x <= BALL_RADIUS * scale || newBall.x >= TABLE_WIDTH - BALL_RADIUS * scale) {
           newBall.vx = -newBall.vx * BOUNCE_DAMPING;
-          newBall.x = Math.max(BALL_RADIUS, Math.min(TABLE_WIDTH - BALL_RADIUS, newBall.x));
+          newBall.x = Math.max(BALL_RADIUS * scale, Math.min(TABLE_WIDTH - BALL_RADIUS * scale, newBall.x));
         }
-        if (newBall.y <= BALL_RADIUS || newBall.y >= TABLE_HEIGHT - BALL_RADIUS) {
+        if (newBall.y <= BALL_RADIUS * scale || newBall.y >= TABLE_HEIGHT - BALL_RADIUS * scale) {
           newBall.vy = -newBall.vy * BOUNCE_DAMPING;
-          newBall.y = Math.max(BALL_RADIUS, Math.min(TABLE_HEIGHT - BALL_RADIUS, newBall.y));
+          newBall.y = Math.max(BALL_RADIUS * scale, Math.min(TABLE_HEIGHT - BALL_RADIUS * scale, newBall.y));
         }
 
         // Apply friction
@@ -537,36 +537,124 @@ const PoolGame = () => {
         }
       }
 
-      // Check pocket collisions
+      // Check pocket collisions and handle game logic
+      const pocketedThisTurn = [];
       newBalls.forEach(ball => {
         if (!ball.pocketed && checkPocket(ball)) {
           ball.pocketed = true;
           ball.vx = 0;
           ball.vy = 0;
           ball.trail = [];
-          
-          // Update game state
-          setGameState(prev => ({
-            ...prev,
-            pocketedBalls: [...prev.pocketedBalls, ball.id]
-          }));
+          pocketedThisTurn.push(ball);
         }
       });
+
+      // Process pocketed balls
+      if (pocketedThisTurn.length > 0) {
+        let continueShoot = false;
+        let switchTurn = false;
+        let gameEnd = false;
+        let winner = null;
+        let foul = false;
+        let resultMessage = '';
+
+        pocketedThisTurn.forEach(ball => {
+          const result = handleBallPocketed(ball);
+          
+          if (result.type === 'win' || result.type === 'lose') {
+            gameEnd = true;
+            winner = result.winner;
+            resultMessage = result.message;
+          } else if (result.type === 'scratch') {
+            foul = true;
+            switchTurn = true;
+            resultMessage = result.message;
+            // Reposition cue ball after animation stops
+            setTimeout(() => {
+              repositionCueBall();
+            }, 500);
+          } else if (result.type === 'assignment') {
+            // Assign ball types to players
+            setGameState(prev => ({
+              ...prev,
+              [`player${gameState.currentPlayer}Type`]: result.playerType,
+              [`player${gameState.currentPlayer === 1 ? 2 : 1}Type`]: result.otherPlayerType,
+              gamePhase: 'playing'
+            }));
+            continueShoot = true;
+            resultMessage = result.message;
+          } else if (result.type === 'success') {
+            continueShoot = true;
+            resultMessage = result.message;
+          } else if (result.type === 'opponent_ball') {
+            foul = true;
+            switchTurn = true;
+            resultMessage = result.message;
+          }
+        });
+
+        setShotResult({
+          message: resultMessage,
+          type: gameEnd ? 'game_end' : foul ? 'foul' : 'success',
+          winner: winner
+        });
+
+        if (gameEnd) {
+          setGameState(prev => ({
+            ...prev,
+            gamePhase: 'finished',
+            winner: winner,
+            canShoot: false
+          }));
+        }
+      }
 
       // Check if all balls are stopped
       const allStopped = newBalls.every(ball => ball.pocketed || (ball.vx === 0 && ball.vy === 0));
       if (allStopped && isAnimating) {
         setIsAnimating(false);
-        setGameState(prev => ({
-          ...prev,
-          currentPlayer: prev.currentPlayer === 1 ? 2 : 1,
-          canShoot: true
-        }));
+        
+        // Handle turn switching logic
+        if (pocketedThisTurn.length === 0) {
+          // No balls pocketed, switch turns
+          setGameState(prev => ({
+            ...prev,
+            currentPlayer: prev.currentPlayer === 1 ? 2 : 1,
+            canShoot: true
+          }));
+          setShotResult({
+            message: 'No balls pocketed. Turn switches.',
+            type: 'miss'
+          });
+        } else {
+          // Handle based on what was pocketed
+          let shouldSwitchTurn = false;
+          let shouldContinue = false;
+          
+          pocketedThisTurn.forEach(ball => {
+            const result = handleBallPocketed(ball);
+            if (result.switchTurn) shouldSwitchTurn = true;
+            if (result.continueShoot) shouldContinue = true;
+          });
+
+          if (shouldSwitchTurn) {
+            setGameState(prev => ({
+              ...prev,
+              currentPlayer: prev.currentPlayer === 1 ? 2 : 1,
+              canShoot: true
+            }));
+          } else if (shouldContinue) {
+            setGameState(prev => ({
+              ...prev,
+              canShoot: true
+            }));
+          }
+        }
       }
 
       return newBalls;
     });
-  }, [checkCollision, resolveBallCollision, checkPocket, isAnimating]);
+  }, [checkCollision, resolveBallCollision, checkPocket, isAnimating, scale, TABLE_WIDTH, TABLE_HEIGHT, handleBallPocketed, repositionCueBall, gameState.currentPlayer]);
 
   const animate = useCallback(() => {
     if (isAnimating) {
