@@ -313,7 +313,7 @@ const PoolGame = () => {
       // Draw ball trail
       if (ball.trail.length > 1) {
         ctx.strokeStyle = `${ball.color}40`;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2 * scale;
         ctx.beginPath();
         ctx.moveTo(ball.trail[0].x, ball.trail[0].y);
         for (let i = 1; i < ball.trail.length; i++) {
@@ -324,14 +324,14 @@ const PoolGame = () => {
 
       // Ball shadow
       ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-      ctx.shadowBlur = 5;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
+      ctx.shadowBlur = 5 * scale;
+      ctx.shadowOffsetX = 2 * scale;
+      ctx.shadowOffsetY = 2 * scale;
 
       // Main ball
       ctx.fillStyle = ball.color;
       ctx.beginPath();
-      ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI * 2);
+      ctx.arc(ball.x, ball.y, BALL_RADIUS * scale, 0, Math.PI * 2);
       ctx.fill();
 
       // Ball highlight
@@ -341,20 +341,20 @@ const PoolGame = () => {
       ctx.shadowOffsetY = 0;
       
       const highlightGradient = ctx.createRadialGradient(
-        ball.x - 3, ball.y - 3, 0,
-        ball.x - 3, ball.y - 3, BALL_RADIUS
+        ball.x - 3 * scale, ball.y - 3 * scale, 0,
+        ball.x - 3 * scale, ball.y - 3 * scale, BALL_RADIUS * scale
       );
       highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
       highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
       ctx.fillStyle = highlightGradient;
       ctx.beginPath();
-      ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI * 2);
+      ctx.arc(ball.x, ball.y, BALL_RADIUS * scale, 0, Math.PI * 2);
       ctx.fill();
 
       // Ball number
       if (ball.id !== 0) {
         ctx.fillStyle = ball.type === 'stripe' ? '#FFFFFF' : '#000000';
-        ctx.font = 'bold 10px Arial';
+        ctx.font = `bold ${10 * scale}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(ball.id.toString(), ball.x, ball.y);
@@ -364,14 +364,25 @@ const PoolGame = () => {
       if (ball.type === 'stripe') {
         ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
-        ctx.arc(ball.x, ball.y, BALL_RADIUS - 2, 0, Math.PI * 2);
+        ctx.arc(ball.x, ball.y, BALL_RADIUS * scale - 2, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.fillStyle = ball.color;
-        ctx.fillRect(ball.x - BALL_RADIUS + 2, ball.y - 2, (BALL_RADIUS - 2) * 2, 4);
+        ctx.fillRect(ball.x - BALL_RADIUS * scale + 2, ball.y - 2 * scale, (BALL_RADIUS * scale - 2) * 2, 4 * scale);
+      }
+
+      // Highlight cue ball placement mode
+      if (cueBallPlacement && ball.id === 0) {
+        ctx.strokeStyle = '#00FFFF';
+        ctx.lineWidth = 3 * scale;
+        ctx.setLineDash([5 * scale, 5 * scale]);
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, BALL_RADIUS * scale + 5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
       }
     });
-  }, [balls]);
+  }, [balls, scale, cueBallPlacement]);
 
   const drawCue = useCallback((ctx) => {
     const cueBall = balls.find(b => b.id === 0);
