@@ -741,8 +741,10 @@ const PoolGame = () => {
 
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
 
     const cueBall = balls.find(b => b.id === 0);
     if (!cueBall || cueBall.pocketed) return;
@@ -764,8 +766,13 @@ const PoolGame = () => {
       let validPosition = true;
       
       // Check boundaries
-      if (newX < BALL_RADIUS * scale || newX > TABLE_WIDTH - BALL_RADIUS * scale ||
-          newY < BALL_RADIUS * scale || newY > TABLE_HEIGHT - BALL_RADIUS * scale) {
+      const ballRadius = BALL_RADIUS * scale;
+      const minX = ballRadius + 15 * scale;
+      const maxX = TABLE_WIDTH - ballRadius - 15 * scale;
+      const minY = ballRadius + 15 * scale;
+      const maxY = TABLE_HEIGHT - ballRadius - 15 * scale;
+      
+      if (newX < minX || newX > maxX || newY < minY || newY > maxY) {
         validPosition = false;
       }
       
@@ -775,7 +782,7 @@ const PoolGame = () => {
           const dx = newX - ball.x;
           const dy = newY - ball.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          if (distance < BALL_RADIUS * scale * 2) {
+          if (distance < ballRadius * 2) {
             validPosition = false;
           }
         }
@@ -806,16 +813,28 @@ const PoolGame = () => {
   const handleMouseMove = useCallback((e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
     setMousePos({ x, y });
 
     if (cueBallPlacement) {
       const cueBall = balls.find(b => b.id === 0);
       if (cueBall) {
+        // Constrain to valid area
+        const ballRadius = BALL_RADIUS * scale;
+        const minX = ballRadius + 15 * scale;
+        const maxX = TABLE_WIDTH - ballRadius - 15 * scale;
+        const minY = ballRadius + 15 * scale;
+        const maxY = TABLE_HEIGHT - ballRadius - 15 * scale;
+        
+        const constrainedX = Math.max(minX, Math.min(maxX, x));
+        const constrainedY = Math.max(minY, Math.min(maxY, y));
+        
         setBalls(prevBalls => 
           prevBalls.map(ball => 
-            ball.id === 0 ? { ...ball, x: x, y: y } : ball
+            ball.id === 0 ? { ...ball, x: constrainedX, y: constrainedY } : ball
           )
         );
       }
@@ -833,7 +852,7 @@ const PoolGame = () => {
         setPower(Math.min(100, Math.max(0, (distance - 50 * scale) / scale)));
       }
     }
-  }, [isAiming, balls, cueBallPlacement, scale]);
+  }, [isAiming, balls, cueBallPlacement, scale, TABLE_WIDTH, TABLE_HEIGHT]);
 
   const handleMouseUp = useCallback(() => {
     if (cueBallPlacement) return;
