@@ -28,14 +28,39 @@ const PoolGame = () => {
   const FRICTION = 0.98;
   const BOUNCE_DAMPING = 0.8;
 
-  // Pocket positions
+  // Responsive table dimensions
+  const TABLE_WIDTH = canvasSize.width;
+  const TABLE_HEIGHT = canvasSize.height;
+
+  // Update canvas size based on container
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.clientWidth - 32; // Account for padding
+        const maxWidth = Math.min(containerWidth, 1000);
+        const aspectRatio = BASE_TABLE_HEIGHT / BASE_TABLE_WIDTH;
+        const newWidth = maxWidth;
+        const newHeight = newWidth * aspectRatio;
+        const newScale = newWidth / BASE_TABLE_WIDTH;
+        
+        setCanvasSize({ width: newWidth, height: newHeight });
+        setScale(newScale);
+      }
+    };
+
+    updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+    return () => window.removeEventListener('resize', updateCanvasSize);
+  }, []);
+
+  // Pocket positions (scaled)
   const POCKETS = [
-    { x: 15, y: 15 }, // Top left
-    { x: TABLE_WIDTH / 2, y: 10 }, // Top center
-    { x: TABLE_WIDTH - 15, y: 15 }, // Top right
-    { x: 15, y: TABLE_HEIGHT - 15 }, // Bottom left
-    { x: TABLE_WIDTH / 2, y: TABLE_HEIGHT - 10 }, // Bottom center
-    { x: TABLE_WIDTH - 15, y: TABLE_HEIGHT - 15 }, // Bottom right
+    { x: 15 * scale, y: 15 * scale }, // Top left
+    { x: TABLE_WIDTH / 2, y: 10 * scale }, // Top center
+    { x: TABLE_WIDTH - 15 * scale, y: 15 * scale }, // Top right
+    { x: 15 * scale, y: TABLE_HEIGHT - 15 * scale }, // Bottom left
+    { x: TABLE_WIDTH / 2, y: TABLE_HEIGHT - 10 * scale }, // Bottom center
+    { x: TABLE_WIDTH - 15 * scale, y: TABLE_HEIGHT - 15 * scale }, // Bottom right
   ];
 
   // Ball colors
