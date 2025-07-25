@@ -434,7 +434,7 @@ const PoolGame = () => {
     const dx = ball1.x - ball2.x;
     const dy = ball1.y - ball2.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
-    return distance < BALL_RADIUS * scale * 2;
+    return distance < (BALL_RADIUS * scale * 2);
   }, [scale]);
 
   const resolveBallCollision = useCallback((ball1, ball2) => {
@@ -442,37 +442,45 @@ const PoolGame = () => {
     const dy = ball1.y - ball2.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
-    if (distance < BALL_RADIUS * scale * 2) {
+    if (distance < (BALL_RADIUS * scale * 2) && distance > 0) {
       // Normalize collision vector
       const nx = dx / distance;
       const ny = dy / distance;
       
-      // Separate balls
-      const overlap = BALL_RADIUS * scale * 2 - distance;
-      ball1.x += nx * overlap * 0.5;
-      ball1.y += ny * overlap * 0.5;
-      ball2.x -= nx * overlap * 0.5;
-      ball2.y -= ny * overlap * 0.5;
+      // Separate balls to avoid overlap
+      const overlap = (BALL_RADIUS * scale * 2) - distance;
+      const separation = overlap * 0.5;
+      
+      ball1.x += nx * separation;
+      ball1.y += ny * separation;
+      ball2.x -= nx * separation;
+      ball2.y -= ny * separation;
       
       // Calculate relative velocity
       const rvx = ball1.vx - ball2.vx;
       const rvy = ball1.vy - ball2.vy;
       
       // Calculate relative velocity in collision normal direction
-      const speed = rvx * nx + rvy * ny;
+      const velocityAlongNormal = rvx * nx + rvy * ny;
       
       // Do not resolve if velocities are separating
-      if (speed > 0) return;
+      if (velocityAlongNormal > 0) return;
       
-      // Calculate restitution
-      const restitution = 0.8;
-      const impulse = 2 * speed / (1 + 1); // Assuming equal mass
+      // Calculate restitution (bounciness)
+      const restitution = 0.85;
+      
+      // Calculate impulse scalar
+      const impulse = -(1 + restitution) * velocityAlongNormal;
+      const impulseScalar = impulse / 2; // Assuming equal mass
       
       // Apply impulse
-      ball1.vx -= impulse * nx * restitution;
-      ball1.vy -= impulse * ny * restitution;
-      ball2.vx += impulse * nx * restitution;
-      ball2.vy += impulse * ny * restitution;
+      const impulseX = impulseScalar * nx;
+      const impulseY = impulseScalar * ny;
+      
+      ball1.vx += impulseX;
+      ball1.vy += impulseY;
+      ball2.vx -= impulseX;
+      ball2.vy -= impulseY;
     }
   }, [scale]);
 
