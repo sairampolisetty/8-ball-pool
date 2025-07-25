@@ -386,17 +386,17 @@ const PoolGame = () => {
 
   const drawCue = useCallback((ctx) => {
     const cueBall = balls.find(b => b.id === 0);
-    if (!cueBall || cueBall.pocketed || !isAiming) return;
+    if (!cueBall || cueBall.pocketed || !isAiming || cueBallPlacement) return;
 
-    const cueLength = 100 + power * 2;
+    const cueLength = (100 + power * 2) * scale;
     const cueX = cueBall.x - Math.cos(aimAngle) * cueLength;
     const cueY = cueBall.y - Math.sin(aimAngle) * cueLength;
 
     // Cue stick shadow
     ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-    ctx.shadowBlur = 3;
-    ctx.shadowOffsetX = 2;
-    ctx.shadowOffsetY = 2;
+    ctx.shadowBlur = 3 * scale;
+    ctx.shadowOffsetX = 2 * scale;
+    ctx.shadowOffsetY = 2 * scale;
 
     // Cue stick gradient
     const cueGradient = ctx.createLinearGradient(cueX, cueY, cueBall.x, cueBall.y);
@@ -405,30 +405,30 @@ const PoolGame = () => {
     cueGradient.addColorStop(1, '#654321');
 
     ctx.strokeStyle = cueGradient;
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 6 * scale;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(cueX, cueY);
-    ctx.lineTo(cueBall.x - Math.cos(aimAngle) * (BALL_RADIUS + 5), cueBall.y - Math.sin(aimAngle) * (BALL_RADIUS + 5));
+    ctx.lineTo(cueBall.x - Math.cos(aimAngle) * (BALL_RADIUS * scale + 5), cueBall.y - Math.sin(aimAngle) * (BALL_RADIUS * scale + 5));
     ctx.stroke();
 
     // Cue tip
     ctx.shadowColor = 'transparent';
     ctx.fillStyle = '#000080';
     ctx.beginPath();
-    ctx.arc(cueBall.x - Math.cos(aimAngle) * (BALL_RADIUS + 5), cueBall.y - Math.sin(aimAngle) * (BALL_RADIUS + 5), 3, 0, Math.PI * 2);
+    ctx.arc(cueBall.x - Math.cos(aimAngle) * (BALL_RADIUS * scale + 5), cueBall.y - Math.sin(aimAngle) * (BALL_RADIUS * scale + 5), 3 * scale, 0, Math.PI * 2);
     ctx.fill();
 
     // Aim line
     ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 + power * 0.007})`;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]);
+    ctx.lineWidth = 2 * scale;
+    ctx.setLineDash([5 * scale, 5 * scale]);
     ctx.beginPath();
     ctx.moveTo(cueBall.x, cueBall.y);
-    ctx.lineTo(cueBall.x + Math.cos(aimAngle) * (50 + power), cueBall.y + Math.sin(aimAngle) * (50 + power));
+    ctx.lineTo(cueBall.x + Math.cos(aimAngle) * (50 + power) * scale, cueBall.y + Math.sin(aimAngle) * (50 + power) * scale);
     ctx.stroke();
     ctx.setLineDash([]);
-  }, [balls, isAiming, aimAngle, power]);
+  }, [balls, isAiming, aimAngle, power, scale, cueBallPlacement]);
 
   const checkCollision = useCallback((ball1, ball2) => {
     const dx = ball1.x - ball2.x;
