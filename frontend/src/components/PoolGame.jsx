@@ -262,49 +262,59 @@ const PoolGame = () => {
 
     // Table border with modern styling
     ctx.strokeStyle = '#8B4513';
-    ctx.lineWidth = 8;
-    ctx.strokeRect(4, 4, TABLE_WIDTH - 8, TABLE_HEIGHT - 8);
+    ctx.lineWidth = 8 * scale;
+    ctx.strokeRect(4 * scale, 4 * scale, TABLE_WIDTH - 8 * scale, TABLE_HEIGHT - 8 * scale);
 
     // Inner border
     ctx.strokeStyle = '#FFD700';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(12, 12, TABLE_WIDTH - 24, TABLE_HEIGHT - 24);
+    ctx.lineWidth = 2 * scale;
+    ctx.strokeRect(12 * scale, 12 * scale, TABLE_WIDTH - 24 * scale, TABLE_HEIGHT - 24 * scale);
 
     // Pockets with glow effect
     POCKETS.forEach(pocket => {
       // Glow effect
       ctx.shadowColor = '#000000';
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 15 * scale;
       ctx.fillStyle = '#000000';
       ctx.beginPath();
-      ctx.arc(pocket.x, pocket.y, POCKET_RADIUS, 0, Math.PI * 2);
+      ctx.arc(pocket.x, pocket.y, POCKET_RADIUS * scale, 0, Math.PI * 2);
       ctx.fill();
       
       // Inner pocket
       ctx.shadowBlur = 0;
       ctx.fillStyle = '#1a1a1a';
       ctx.beginPath();
-      ctx.arc(pocket.x, pocket.y, POCKET_RADIUS - 3, 0, Math.PI * 2);
+      ctx.arc(pocket.x, pocket.y, (POCKET_RADIUS - 3) * scale, 0, Math.PI * 2);
       ctx.fill();
     });
 
     // Center spot
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(TABLE_WIDTH / 2, TABLE_HEIGHT / 2, 2, 0, Math.PI * 2);
+    ctx.arc(TABLE_WIDTH / 2, TABLE_HEIGHT / 2, 2 * scale, 0, Math.PI * 2);
     ctx.fill();
 
     // Rack outline
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1 * scale;
     ctx.beginPath();
-    ctx.moveTo(TABLE_WIDTH * 0.75 - 20, TABLE_HEIGHT / 2 - 40);
-    ctx.lineTo(TABLE_WIDTH * 0.75 + 60, TABLE_HEIGHT / 2 - 40);
-    ctx.lineTo(TABLE_WIDTH * 0.75 + 60, TABLE_HEIGHT / 2 + 40);
-    ctx.lineTo(TABLE_WIDTH * 0.75 - 20, TABLE_HEIGHT / 2 + 40);
+    ctx.moveTo(TABLE_WIDTH * 0.75 - 20 * scale, TABLE_HEIGHT / 2 - 40 * scale);
+    ctx.lineTo(TABLE_WIDTH * 0.75 + 60 * scale, TABLE_HEIGHT / 2 - 40 * scale);
+    ctx.lineTo(TABLE_WIDTH * 0.75 + 60 * scale, TABLE_HEIGHT / 2 + 40 * scale);
+    ctx.lineTo(TABLE_WIDTH * 0.75 - 20 * scale, TABLE_HEIGHT / 2 + 40 * scale);
     ctx.closePath();
     ctx.stroke();
-  }, []);
+
+    // Draw table bounds visualization (for debugging - remove in production)
+    ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)';
+    ctx.lineWidth = 1;
+    const ballRadius = BALL_RADIUS * scale;
+    const minX = ballRadius + 15 * scale;
+    const maxX = TABLE_WIDTH - ballRadius - 15 * scale;
+    const minY = ballRadius + 15 * scale;
+    const maxY = TABLE_HEIGHT - ballRadius - 15 * scale;
+    ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+  }, [TABLE_WIDTH, TABLE_HEIGHT, scale]);
 
   const drawBalls = useCallback((ctx) => {
     balls.forEach(ball => {
