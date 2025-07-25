@@ -502,7 +502,7 @@ const PoolGame = () => {
         const newTrail = [...ball.trail, { x: ball.x, y: ball.y }];
         if (newTrail.length > 10) newTrail.shift();
 
-        // Update position
+        // Create new ball object with updated position
         const newBall = {
           ...ball,
           x: ball.x + ball.vx,
@@ -510,14 +510,29 @@ const PoolGame = () => {
           trail: newTrail
         };
 
-        // Wall collisions
-        if (newBall.x <= BALL_RADIUS * scale || newBall.x >= TABLE_WIDTH - BALL_RADIUS * scale) {
+        // Boundary collision detection with proper margins
+        const ballRadius = BALL_RADIUS * scale;
+        const minX = ballRadius + 15 * scale; // Account for table border
+        const maxX = TABLE_WIDTH - ballRadius - 15 * scale;
+        const minY = ballRadius + 15 * scale;
+        const maxY = TABLE_HEIGHT - ballRadius - 15 * scale;
+
+        // X-axis boundary collision
+        if (newBall.x <= minX) {
+          newBall.x = minX;
           newBall.vx = -newBall.vx * BOUNCE_DAMPING;
-          newBall.x = Math.max(BALL_RADIUS * scale, Math.min(TABLE_WIDTH - BALL_RADIUS * scale, newBall.x));
+        } else if (newBall.x >= maxX) {
+          newBall.x = maxX;
+          newBall.vx = -newBall.vx * BOUNCE_DAMPING;
         }
-        if (newBall.y <= BALL_RADIUS * scale || newBall.y >= TABLE_HEIGHT - BALL_RADIUS * scale) {
+
+        // Y-axis boundary collision
+        if (newBall.y <= minY) {
+          newBall.y = minY;
           newBall.vy = -newBall.vy * BOUNCE_DAMPING;
-          newBall.y = Math.max(BALL_RADIUS * scale, Math.min(TABLE_HEIGHT - BALL_RADIUS * scale, newBall.y));
+        } else if (newBall.y >= maxY) {
+          newBall.y = maxY;
+          newBall.vy = -newBall.vy * BOUNCE_DAMPING;
         }
 
         // Apply friction
@@ -525,7 +540,8 @@ const PoolGame = () => {
         newBall.vy *= FRICTION;
 
         // Stop ball if moving very slowly
-        if (Math.abs(newBall.vx) < 0.1 && Math.abs(newBall.vy) < 0.1) {
+        const speed = Math.sqrt(newBall.vx * newBall.vx + newBall.vy * newBall.vy);
+        if (speed < 0.1) {
           newBall.vx = 0;
           newBall.vy = 0;
           newBall.trail = [];
@@ -534,16 +550,32 @@ const PoolGame = () => {
         return newBall;
       });
 
-      // Check ball-ball collisions
-      for (let i = 0; i < newBalls.length; i++) {
-        for (let j = i + 1; j < newBalls.length; j++) {
-          if (!newBalls[i].pocketed && !newBalls[j].pocketed) {
-            if (checkCollision(newBalls[i], newBalls[j])) {
-              resolveBallCollision(newBalls[i], newBalls[j]);
+      // Process ball-ball collisions multiple times for better accuracy
+      for (let iteration = 0; iteration < 3; iteration++) {
+        for (let i = 0; i < newBalls.length; i++) {
+          for (let j = i + 1; j < newBalls.length; j++) {
+            if (!newBalls[i].pocketed && !newBalls[j].pocketed) {
+              if (checkCollision(newBalls[i], newBalls[j])) {
+                resolveBallCollision(newBalls[i], newBalls[j]);
+              }
             }
           }
         }
       }
+
+      // Ensure balls stay within bounds after collision resolution
+      newBalls.forEach(ball => {
+        if (!ball.pocketed) {
+          const ballRadius = BALL_RADIUS * scale;
+          const minX = ballRadius + 15 * scale;
+          const maxX = TABLE_WIDTH - ballRadius - 15 * scale;
+          const minY = ballRadius + 15 * scale;
+          const maxY = TABLE_HEIGHT - ballRadius - 15 * scale;
+
+          ball.x = Math.max(minX, Math.min(maxX, ball.x));
+          ball.y = Math.max(minY, Math.min(maxY, ball.y));
+        }
+      });
 
       // Check pocket collisions and handle game logic
       const pocketedThisTurn = [];
