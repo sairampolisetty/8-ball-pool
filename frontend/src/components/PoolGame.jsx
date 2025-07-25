@@ -697,16 +697,61 @@ const PoolGame = () => {
     const cueBall = balls.find(b => b.id === 0);
     if (!cueBall || cueBall.pocketed) return;
 
+    // Handle cue ball placement
+    if (cueBallPlacement) {
+      const dx = x - cueBall.x;
+      const dy = y - cueBall.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < 30 * scale) {
+        // Start dragging cue ball
+        return;
+      }
+      
+      // Check if new position is valid (not overlapping with other balls)
+      const newX = x;
+      const newY = y;
+      let validPosition = true;
+      
+      // Check boundaries
+      if (newX < BALL_RADIUS * scale || newX > TABLE_WIDTH - BALL_RADIUS * scale ||
+          newY < BALL_RADIUS * scale || newY > TABLE_HEIGHT - BALL_RADIUS * scale) {
+        validPosition = false;
+      }
+      
+      // Check collision with other balls
+      balls.forEach(ball => {
+        if (ball.id !== 0 && !ball.pocketed) {
+          const dx = newX - ball.x;
+          const dy = newY - ball.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < BALL_RADIUS * scale * 2) {
+            validPosition = false;
+          }
+        }
+      });
+      
+      if (validPosition) {
+        setBalls(prevBalls => 
+          prevBalls.map(ball => 
+            ball.id === 0 ? { ...ball, x: newX, y: newY } : ball
+          )
+        );
+        setCueBallPlacement(false);
+      }
+      return;
+    }
+
     const dx = x - cueBall.x;
     const dy = y - cueBall.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
-    if (distance < 50) {
+    if (distance < 50 * scale) {
       setIsAiming(true);
       setAimAngle(Math.atan2(dy, dx));
       setPower(0);
     }
-  }, [gameState.canShoot, isAnimating, balls]);
+  }, [gameState.canShoot, isAnimating, balls, cueBallPlacement, scale, TABLE_WIDTH, TABLE_HEIGHT]);
 
   const handleMouseMove = useCallback((e) => {
     const canvas = canvasRef.current;
@@ -714,6 +759,18 @@ const PoolGame = () => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     setMousePos({ x, y });
+
+    if (cueBallPlacement) {
+      const cueBall = balls.find(b => b.id === 0);
+      if (cueBall) {
+        setBalls(prevBalls => 
+          prevBalls.map(ball => 
+            ball.id === 0 ? { ...ball, x: x, y: y } : ball
+          )
+        );
+      }
+      return;
+    }
 
     if (isAiming) {
       const cueBall = balls.find(b => b.id === 0);
@@ -723,12 +780,14 @@ const PoolGame = () => {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         setAimAngle(Math.atan2(dy, dx));
-        setPower(Math.min(100, Math.max(0, distance - 50)));
+        setPower(Math.min(100, Math.max(0, (distance - 50 * scale) / scale)));
       }
     }
-  }, [isAiming, balls]);
+  }, [isAiming, balls, cueBallPlacement, scale]);
 
   const handleMouseUp = useCallback(() => {
+    if (cueBallPlacement) return;
+
     if (isAiming && power > 0) {
       const cueBall = balls.find(b => b.id === 0);
       if (cueBall) {
@@ -747,12 +806,13 @@ const PoolGame = () => {
         
         setIsAnimating(true);
         setGameState(prev => ({ ...prev, canShoot: false }));
+        setShotResult(null);
       }
     }
     
     setIsAiming(false);
     setPower(0);
-  }, [isAiming, power, aimAngle, balls]);
+  }, [isAiming, power, aimAngle, balls, cueBallPlacement]);
 
   const resetGame = useCallback(() => {
     setBalls(initializeBalls());
