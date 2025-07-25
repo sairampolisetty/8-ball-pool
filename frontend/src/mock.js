@@ -1,13 +1,10 @@
 // Mock data for the 8-ball pool game
 export const mockGameState = {
   currentPlayer: 1,
-  player1Score: 0,
-  player2Score: 0,
-  player1Type: null, // 'solid' or 'stripe'
+  player1Type: null, // 'solid' or 'stripe' - assigned after first legal ball
   player2Type: null,
   gamePhase: 'open', // 'open', 'playing', 'finished'
   canShoot: true,
-  pocketedBalls: [],
   winner: null,
   foulCommitted: false,
   eightBallPocketed: false,
