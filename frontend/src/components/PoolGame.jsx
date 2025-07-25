@@ -233,13 +233,19 @@ const PoolGame = () => {
   }, [gameState.currentPlayer, balls]);
 
   const repositionCueBall = useCallback(() => {
+    const ballRadius = BALL_RADIUS * scale;
+    const minX = ballRadius + 15 * scale;
+    const maxX = TABLE_WIDTH - ballRadius - 15 * scale;
+    const minY = ballRadius + 15 * scale;
+    const maxY = TABLE_HEIGHT - ballRadius - 15 * scale;
+    
     setBalls(prevBalls => 
       prevBalls.map(ball => 
         ball.id === 0 
           ? {
               ...ball,
-              x: TABLE_WIDTH * 0.25,
-              y: TABLE_HEIGHT / 2,
+              x: Math.max(minX, Math.min(maxX, TABLE_WIDTH * 0.25)),
+              y: Math.max(minY, Math.min(maxY, TABLE_HEIGHT / 2)),
               vx: 0,
               vy: 0,
               pocketed: false,
@@ -249,7 +255,7 @@ const PoolGame = () => {
       )
     );
     setCueBallPlacement(true);
-  }, [TABLE_WIDTH, TABLE_HEIGHT]);
+  }, [TABLE_WIDTH, TABLE_HEIGHT, scale]);
 
   const drawTable = useCallback((ctx) => {
     // Table felt with modern gradient
