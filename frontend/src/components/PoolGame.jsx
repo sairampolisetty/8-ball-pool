@@ -111,8 +111,8 @@ const PoolGame = () => {
           const ballNum = ballNumbers[ballIndex];
           balls.push({
             id: ballNum,
-            x: rackX + row * (BALL_RADIUS * 1.8),
-            y: rackY + (col - row / 2) * (BALL_RADIUS * 1.8),
+            x: rackX + row * (BALL_RADIUS * scale * 1.8),
+            y: rackY + (col - row / 2) * (BALL_RADIUS * scale * 1.8),
             vx: 0,
             vy: 0,
             color: BALL_COLORS[ballNum],
@@ -126,9 +126,130 @@ const PoolGame = () => {
     }
     
     return balls;
-  }, []);
+  }, [TABLE_WIDTH, TABLE_HEIGHT, scale]);
 
   const [balls, setBalls] = useState(initializeBalls);
+
+  // Reset balls when canvas size changes
+  useEffect(() => {
+    setBalls(initializeBalls());
+  }, [initializeBalls]);
+
+  // Game rule functions
+  const getBallType = (ballId) => {
+    if (ballId === 0) return 'cue';
+    if (ballId === 8) return 'eight';
+    if (ballId <= 7) return 'solid';
+    return 'stripe';
+  };
+
+  const getPlayerBallType = (playerId) => {
+    return gameState[`player${playerId}Type`];
+  };
+
+  const isPlayerBall = (ballId, playerId) => {
+    const ballType = getBallType(ballId);
+    const playerType = getPlayerBallType(playerId);
+    return ballType === playerType;
+  };
+
+  const getPlayerRemainingBalls = (playerId) => {
+    const playerType = getPlayerBallType(playerId);
+    if (!playerType) return [];
+    
+    return balls.filter(ball => 
+      ball.type === playerType && !ball.pocketed
+    );
+  };
+
+  const canShootEightBall = (playerId) => {
+    const remainingBalls = getPlayerRemainingBalls(playerId);
+    return remainingBalls.length === 0;
+  };
+
+  const handleBallPocketed = useCallback((ball) => {
+    if (ball.id === 0) {
+      // Cue ball scratched
+      return {
+        type: 'scratch',
+        foul: true,
+        switchTurn: true,
+        message: 'Cue ball scratched!'
+      };
+    }
+
+    if (ball.id === 8) {
+      // 8-ball pocketed
+      const canShoot8 = canShootEightBall(gameState.currentPlayer);
+      if (canShoot8) {
+        return {
+          type: 'win',
+          winner: gameState.currentPlayer,
+          message: `Player ${gameState.currentPlayer} wins!`
+        };
+      } else {
+        return {
+          type: 'lose',
+          winner: gameState.currentPlayer === 1 ? 2 : 1,
+          message: `Player ${gameState.currentPlayer} loses! 8-ball pocketed early.`
+        };
+      }
+    }
+
+    // Regular ball pocketed
+    const ballType = getBallType(ball.id);
+    const currentPlayerType = getPlayerBallType(gameState.currentPlayer);
+
+    if (!currentPlayerType) {
+      // First ball determines player type
+      const newPlayerType = ballType;
+      const otherPlayerType = ballType === 'solid' ? 'stripe' : 'solid';
+      
+      return {
+        type: 'assignment',
+        playerType: newPlayerType,
+        otherPlayerType: otherPlayerType,
+        continueShoot: true,
+        message: `Player ${gameState.currentPlayer} gets ${newPlayerType}s!`
+      };
+    }
+
+    if (ballType === currentPlayerType) {
+      // Player pocketed their own ball
+      return {
+        type: 'success',
+        continueShoot: true,
+        message: `Good shot! Continue shooting.`
+      };
+    } else {
+      // Player pocketed opponent's ball
+      return {
+        type: 'opponent_ball',
+        foul: true,
+        switchTurn: true,
+        message: `Wrong ball! Turn switches.`
+      };
+    }
+  }, [gameState.currentPlayer, balls]);
+
+  const repositionCueBall = useCallback(() => {
+    setBalls(prevBalls => 
+      prevBalls.map(ball => 
+        ball.id === 0 
+          ? {
+              ...ball,
+              x: TABLE_WIDTH * 0.25,
+              y: TABLE_HEIGHT / 2,
+              vx: 0,
+              vy: 0,
+              pocketed: false,
+              trail: []
+            }
+          : ball
+      )
+    );
+    setCueBallPlacement(true);
+  }, [TABLE_WIDTH, TABLE_HEIGHT]);
 
   const drawTable = useCallback((ctx) => {
     // Table felt with modern gradient
