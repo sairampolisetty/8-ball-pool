@@ -820,49 +820,86 @@ const PoolGame = () => {
     setIsAnimating(false);
     setIsAiming(false);
     setPower(0);
+    setShotResult(null);
+    setCueBallPlacement(false);
   }, [initializeBalls]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-6">
-          <h1 className="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-2 sm:p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-4 sm:mb-6">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
             8-Ball Pool
           </h1>
-          <p className="text-slate-300">Modern 2D Pool Game</p>
+          <p className="text-slate-300 text-sm sm:text-base">Modern 2D Pool Game</p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col xl:flex-row gap-4 sm:gap-6">
           {/* Game Board */}
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-            <div className="p-4">
-              <canvas
-                ref={canvasRef}
-                width={TABLE_WIDTH}
-                height={TABLE_HEIGHT}
-                className="border-2 border-slate-600 rounded-lg shadow-2xl cursor-crosshair"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-              />
-            </div>
-          </Card>
+          <div ref={containerRef} className="flex-1">
+            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+              <div className="p-2 sm:p-4">
+                <canvas
+                  ref={canvasRef}
+                  width={canvasSize.width}
+                  height={canvasSize.height}
+                  className="border-2 border-slate-600 rounded-lg shadow-2xl cursor-crosshair w-full"
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                />
+              </div>
+            </Card>
+          </div>
 
           {/* Game Info */}
-          <div className="lg:w-80 space-y-4">
+          <div className="xl:w-80 space-y-4">
+            {/* Shot Result */}
+            {shotResult && (
+              <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+                <div className="p-4">
+                  <div className={`text-center ${
+                    shotResult.type === 'game_end' ? 'text-yellow-400' :
+                    shotResult.type === 'foul' ? 'text-red-400' :
+                    shotResult.type === 'success' ? 'text-green-400' :
+                    'text-slate-300'
+                  }`}>
+                    {shotResult.message}
+                  </div>
+                </div>
+              </Card>
+            )}
+
             {/* Current Player */}
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
               <div className="p-4">
                 <h3 className="text-lg font-semibold text-white mb-3">Current Player</h3>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mb-2">
                   <div className={`w-4 h-4 rounded-full ${gameState.currentPlayer === 1 ? 'bg-blue-500' : 'bg-red-500'}`}></div>
                   <span className="text-white font-medium">
                     Player {gameState.currentPlayer}
                   </span>
                   <Badge variant={gameState.canShoot ? "default" : "secondary"}>
-                    {gameState.canShoot ? "Your Turn" : "Waiting"}
+                    {cueBallPlacement ? "Place Cue Ball" : 
+                     gameState.canShoot ? "Your Turn" : "Waiting"}
                   </Badge>
+                </div>
+                
+                {/* Player Ball Types */}
+                <div className="text-sm space-y-1">
+                  {gameState.player1Type && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <span className="text-slate-300">Player 1: {gameState.player1Type}s</span>
+                    </div>
+                  )}
+                  {gameState.player2Type && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                      <span className="text-slate-300">Player 2: {gameState.player2Type}s</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>
@@ -873,7 +910,8 @@ const PoolGame = () => {
                 <h3 className="text-lg font-semibold text-white mb-3">Power</h3>
                 <Progress value={power} className="h-3" />
                 <p className="text-sm text-slate-400 mt-2">
-                  {power > 0 ? `${Math.round(power)}% power` : "Aim and drag to shoot"}
+                  {cueBallPlacement ? "Click to place cue ball" :
+                   power > 0 ? `${Math.round(power)}% power` : "Aim and drag to shoot"}
                 </p>
               </div>
             </Card>
@@ -882,18 +920,22 @@ const PoolGame = () => {
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
               <div className="p-4">
                 <h3 className="text-lg font-semibold text-white mb-3">Game Stats</h3>
-                <div className="space-y-2">
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Game Phase:</span>
+                    <span className="text-white capitalize">{gameState.gamePhase}</span>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Balls Pocketed:</span>
-                    <span className="text-white">{gameState.pocketedBalls.length}</span>
+                    <span className="text-white">{balls.filter(b => b.pocketed).length}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Player 1 Score:</span>
-                    <span className="text-white">{gameState.player1Score}</span>
+                    <span className="text-slate-400">Player 1 Remaining:</span>
+                    <span className="text-white">{getPlayerRemainingBalls(1).length}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Player 2 Score:</span>
-                    <span className="text-white">{gameState.player2Score}</span>
+                    <span className="text-slate-400">Player 2 Remaining:</span>
+                    <span className="text-white">{getPlayerRemainingBalls(2).length}</span>
                   </div>
                 </div>
               </div>
@@ -907,6 +949,7 @@ const PoolGame = () => {
                   <p>• Click and drag near cue ball to aim</p>
                   <p>• Drag distance controls power</p>
                   <p>• Release to shoot</p>
+                  <p>• Pocket all your balls then the 8-ball</p>
                 </div>
                 <Button 
                   onClick={resetGame}
