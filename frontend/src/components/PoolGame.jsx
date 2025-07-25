@@ -7,17 +7,22 @@ import { mockGameState } from '../mock';
 
 const PoolGame = () => {
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
   const [gameState, setGameState] = useState(mockGameState);
   const [isAiming, setIsAiming] = useState(false);
   const [aimAngle, setAimAngle] = useState(0);
   const [power, setPower] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 400 });
+  const [scale, setScale] = useState(1);
+  const [shotResult, setShotResult] = useState(null);
+  const [cueBallPlacement, setCueBallPlacement] = useState(false);
   const animationRef = useRef(null);
 
-  // Table dimensions
-  const TABLE_WIDTH = 800;
-  const TABLE_HEIGHT = 400;
+  // Table dimensions (base dimensions)
+  const BASE_TABLE_WIDTH = 800;
+  const BASE_TABLE_HEIGHT = 400;
   const BALL_RADIUS = 8;
   const POCKET_RADIUS = 18;
   const FRICTION = 0.98;
