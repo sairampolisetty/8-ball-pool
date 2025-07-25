@@ -434,21 +434,21 @@ const PoolGame = () => {
     const dx = ball1.x - ball2.x;
     const dy = ball1.y - ball2.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
-    return distance < BALL_RADIUS * 2;
-  }, []);
+    return distance < BALL_RADIUS * scale * 2;
+  }, [scale]);
 
   const resolveBallCollision = useCallback((ball1, ball2) => {
     const dx = ball1.x - ball2.x;
     const dy = ball1.y - ball2.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
-    if (distance < BALL_RADIUS * 2) {
+    if (distance < BALL_RADIUS * scale * 2) {
       // Normalize collision vector
       const nx = dx / distance;
       const ny = dy / distance;
       
       // Separate balls
-      const overlap = BALL_RADIUS * 2 - distance;
+      const overlap = BALL_RADIUS * scale * 2 - distance;
       ball1.x += nx * overlap * 0.5;
       ball1.y += ny * overlap * 0.5;
       ball2.x -= nx * overlap * 0.5;
@@ -474,16 +474,16 @@ const PoolGame = () => {
       ball2.vx += impulse * nx * restitution;
       ball2.vy += impulse * ny * restitution;
     }
-  }, []);
+  }, [scale]);
 
   const checkPocket = useCallback((ball) => {
     return POCKETS.some(pocket => {
       const dx = ball.x - pocket.x;
       const dy = ball.y - pocket.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      return distance < POCKET_RADIUS - 2;
+      return distance < (POCKET_RADIUS - 2) * scale;
     });
-  }, []);
+  }, [scale]);
 
   const updatePhysics = useCallback(() => {
     setBalls(prevBalls => {
